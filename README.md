@@ -25,5 +25,5 @@ CLI-based client for sanakirja.org, dictionary site made by HS (Helsingin Sanoma
 3. Build with command `go build -i -o build/sanakirja Main.go`
 4. Compiled binary is located in folder `build`
 
-For linux, you could copy that binary to /usr/bin, which would make this utility accessible from your cli.
+For linux, you could copy that binary to /usr/bin, which would make this utility accessible from your cli.<br>
 Run `cp build/sanakirja /usr/bin/`

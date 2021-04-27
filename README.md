@@ -31,4 +31,4 @@ CLI-based client for sanakirja.org, dictionary site made by HS (Helsingin Sanoma
 4. Compiled binary is located in folder `build`
 
 For linux, you could copy that binary to /usr/bin, which would make this utility accessible from your cli.<br>
-Run `cp build/sanakirja /usr/bin/` for that
+Run `cp <path_to_binary> /usr/bin/` for that

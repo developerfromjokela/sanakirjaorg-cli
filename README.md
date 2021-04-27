@@ -2,6 +2,11 @@
 CLI-based client for sanakirja.org, dictionary site made by HS (Helsingin Sanomat)
 
 ### Usage
+`sanakirja [[source_language] [[target_language]] <word>` or<br>
+`sanakirja [[source_language] <word>` or<br>
+`sanakirja <word>`<br>
+
+### Arguments list
 - `-i`: Interactive mode (WIP!)
 - `--src`: Source language, language list available with command `langlist`
 - `--target`: Source language, language list available with command `langlist`

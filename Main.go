@@ -107,129 +107,159 @@ func nonInteractive() {
 		fetchLanguages()
 		var sourceLang = findLanguage(source)
 		var targetLang = findLanguage(target)
-		if sourceLang == nil {
-			log.Log(log.WARN, "Source language is invalid")
-			flag.Usage()
-			return
-		}
-		if targetLang == nil {
-			log.Log(log.WARN, "Source language is invalid")
-			flag.Usage()
-			return
-		}
-		searchResp, err := api.Define(sourceLang.Id, targetLang.Id, text, defaultLang)
-		if err != nil {
-			log.Log(log.ERROR, err)
-			return
-		}
-		if searchResp.Status == "ok" {
-			if !json {
-				// Basic mode
-				for _, group := range searchResp.Groups {
-					fmt.Println("*** " + group.Name + " ***")
-					table := tablewriter.NewWriter(os.Stdout)
-					table.SetHeader([]string{"Word", "Pronountiation"})
-					for _, translation := range group.Translations {
-						var pronounciation []string
-						for _, pronoun := range translation.Word.Pronunciation {
-							pronounciation = append(pronounciation, pronoun.Ipa)
-						}
-						table.Append([]string{translation.Word.Text, strings.Join(pronounciation, ",")})
-					}
-					table.Render()
-				}
-				if definitions {
-					fmt.Println()
-					fmt.Println("--> Definitions")
-					for _, definition := range searchResp.Definitions {
-						fmt.Println("** ", definition.Group, " **")
-						for pos, item := range definition.Definitions {
-							var correctedDefinition = item
-							correctedDefinition = strings.ReplaceAll(correctedDefinition, "<em>", "")
-							correctedDefinition = strings.ReplaceAll(correctedDefinition, "</em>", "")
-							var re = regexp.MustCompile(`\[\[(.*?)\|(.*?)\]\]`)
-							correctedDefinition = re.ReplaceAllString(correctedDefinition, `$2`)
-							fmt.Println("[", pos+1, "] ", correctedDefinition)
-						}
-					}
-					fmt.Println()
-				}
-				if synonyms {
-					fmt.Println()
-					fmt.Println("--> Synonyms")
-					for _, example := range searchResp.Synonyms {
-						fmt.Println(example.Text)
-					}
-					fmt.Println()
-				}
-				if altSpellings {
-					fmt.Println()
-					fmt.Println("--> Alternative spellings")
-					for _, example := range searchResp.Alternative_spellings {
-						fmt.Print(example.Text)
-						if len(example.Context) > 0 {
-							fmt.Print(" ", "(", example.Context, ")")
-						}
-						fmt.Println("")
-					}
-					fmt.Println()
-				}
-				if examples {
-					fmt.Println()
-					fmt.Println("--> Examples")
-					for _, example := range searchResp.Examples {
-						fmt.Println("[*] " + example.First_phrase)
-						if len(example.Second_phrase) > 0 {
-							fmt.Println("[*] " + example.Second_phrase)
-						}
-					}
-					fmt.Println()
-				}
-				if examples {
-					fmt.Println()
-					fmt.Println("--> Examples")
-					for _, example := range searchResp.Examples {
-						fmt.Println("[*] " + example.First_phrase)
-						if len(example.Second_phrase) > 0 {
-							fmt.Println("[*] " + example.Second_phrase)
-						}
-					}
-					fmt.Println()
-				}
-				if pronun {
-					fmt.Println()
-					fmt.Println("--> Pronunciations")
-					for _, pronun := range searchResp.Word.Pronunciation {
-						var dialect = ""
-						if pronun.Dialect != "*" {
-							dialect = pronun.Dialect + " "
-						}
-						fmt.Println("[*] ", dialect, pronun.Ipa)
-					}
-					fmt.Println()
-				}
-			} else {
-				// Export whole thing as JSON
-				jsonExport(searchResp)
-			}
-		} else if searchResp.Status == "error" {
-			log.Log(log.ERROR, "Sanakirja.org server error")
-		} else if searchResp.Status == "word_not_found" {
-			fmt.Print("Word you're searching was not found.")
-			if searchResp.Suggestions != nil && len(searchResp.Suggestions) > 0 {
-				fmt.Print(" Here are some suggestions:")
-			}
-			fmt.Println("")
-			for _, suggestion := range searchResp.Suggestions {
-				fmt.Println(suggestion.Word.Text)
-			}
-		} else {
-			log.Log(log.LOG, "Status not found! FATAL")
-			log.Log(log.ERROR, "Parsing error. Please enable verbose to see exact cause")
-		}
+		nonInteractiveSearch(sourceLang, targetLang)
 	} else {
+		log.Log(log.DEBUG, len(flag.Args()))
+		log.Log(log.DEBUG, flag.Args())
+		if len(flag.Args()) == 1 {
+			fmt.Println("Using defaults: en->fi")
+			fetchLanguages()
+			var sourceLang = findLanguage("en")
+			var targetLang = findLanguage("fi")
+			text = flag.Arg(0)
+			nonInteractiveSearch(sourceLang, targetLang)
+			return
+		} else if len(flag.Args()) == 2 {
+			fmt.Println("Using default target (fi)")
+			fetchLanguages()
+			text = flag.Arg(1)
+			var sourceLang = findLanguage(flag.Arg(0))
+			var targetLang = findLanguage("fi")
+			nonInteractiveSearch(sourceLang, targetLang)
+			return
+		} else if len(flag.Args()) == 3 {
+			fetchLanguages()
+			text = flag.Arg(2)
+			var sourceLang = findLanguage(flag.Arg(0))
+			var targetLang = findLanguage(flag.Arg(1))
+			nonInteractiveSearch(sourceLang, targetLang)
+			return
+		}
 		// HELP
 		flag.Usage()
+	}
+}
+
+func nonInteractiveSearch(sourceLang *api.Language, targetLang *api.Language) {
+	if sourceLang == nil {
+		log.Log(log.WARN, "Source language is invalid")
+		flag.Usage()
+		return
+	}
+	if targetLang == nil {
+		log.Log(log.WARN, "Source language is invalid")
+		flag.Usage()
+		return
+	}
+	searchResp, err := api.Define(sourceLang.Id, targetLang.Id, text, defaultLang)
+	if err != nil {
+		log.Log(log.ERROR, err)
+		return
+	}
+	if searchResp.Status == "ok" {
+		if !json {
+			// Basic mode
+			for _, group := range searchResp.Groups {
+				fmt.Println("*** " + group.Name + " ***")
+				table := tablewriter.NewWriter(os.Stdout)
+				table.SetHeader([]string{"Word", "Pronountiation"})
+				for _, translation := range group.Translations {
+					var pronounciation []string
+					for _, pronoun := range translation.Word.Pronunciation {
+						pronounciation = append(pronounciation, pronoun.Ipa)
+					}
+					table.Append([]string{translation.Word.Text, strings.Join(pronounciation, ",")})
+				}
+				table.Render()
+			}
+			if definitions {
+				fmt.Println()
+				fmt.Println("--> Definitions")
+				for _, definition := range searchResp.Definitions {
+					fmt.Println("** ", definition.Group, " **")
+					for pos, item := range definition.Definitions {
+						var correctedDefinition = item
+						correctedDefinition = strings.ReplaceAll(correctedDefinition, "<em>", "")
+						correctedDefinition = strings.ReplaceAll(correctedDefinition, "</em>", "")
+						var re = regexp.MustCompile(`\[\[(.*?)\|(.*?)\]\]`)
+						correctedDefinition = re.ReplaceAllString(correctedDefinition, `$2`)
+						fmt.Println("[", pos+1, "] ", correctedDefinition)
+					}
+				}
+				fmt.Println()
+			}
+			if synonyms {
+				fmt.Println()
+				fmt.Println("--> Synonyms")
+				for _, example := range searchResp.Synonyms {
+					fmt.Println(example.Text)
+				}
+				fmt.Println()
+			}
+			if altSpellings {
+				fmt.Println()
+				fmt.Println("--> Alternative spellings")
+				for _, example := range searchResp.Alternative_spellings {
+					fmt.Print(example.Text)
+					if len(example.Context) > 0 {
+						fmt.Print(" ", "(", example.Context, ")")
+					}
+					fmt.Println("")
+				}
+				fmt.Println()
+			}
+			if examples {
+				fmt.Println()
+				fmt.Println("--> Examples")
+				for _, example := range searchResp.Examples {
+					fmt.Println("[*] " + example.First_phrase)
+					if len(example.Second_phrase) > 0 {
+						fmt.Println("[*] " + example.Second_phrase)
+					}
+				}
+				fmt.Println()
+			}
+			if examples {
+				fmt.Println()
+				fmt.Println("--> Examples")
+				for _, example := range searchResp.Examples {
+					fmt.Println("[*] " + example.First_phrase)
+					if len(example.Second_phrase) > 0 {
+						fmt.Println("[*] " + example.Second_phrase)
+					}
+				}
+				fmt.Println()
+			}
+			if pronun {
+				fmt.Println()
+				fmt.Println("--> Pronunciations")
+				for _, pronun := range searchResp.Word.Pronunciation {
+					var dialect = ""
+					if pronun.Dialect != "*" {
+						dialect = pronun.Dialect + " "
+					}
+					fmt.Println("[*] ", dialect, pronun.Ipa)
+				}
+				fmt.Println()
+			}
+		} else {
+			// Export whole thing as JSON
+			jsonExport(searchResp)
+		}
+	} else if searchResp.Status == "error" {
+		log.Log(log.ERROR, "Sanakirja.org server error")
+	} else if searchResp.Status == "word_not_found" || searchResp.Status == "no_translations_found" {
+		fmt.Print("Word you're searching was not found.")
+		if searchResp.Suggestions != nil && len(searchResp.Suggestions) > 0 {
+			fmt.Print(" Here are some suggestions:")
+		}
+		fmt.Println("")
+		for _, suggestion := range searchResp.Suggestions {
+			fmt.Println(suggestion.Word.Text)
+		}
+	} else {
+		log.Log(log.LOG, "Status not found! FATAL: "+searchResp.Status)
+		log.Log(log.ERROR, "Parsing error. Please enable verbose to see exact cause")
 	}
 }
 

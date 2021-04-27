@@ -63,7 +63,7 @@ type Inflection struct {
 
 type Suggestion struct {
 	Word      Word
-	Relevance int
+	Relevance float32
 }
 
 type SearchResponse struct {
